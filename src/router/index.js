@@ -3,6 +3,7 @@ import Start from '@/views/StartView.vue'
 import Exercises from '@/views/ExercisesView.vue'
 import Days from '@/views/DaysView.vue'
 import Day from '@/views/DayView.vue'
+import Reg from '@/views/RegView.vue'
 
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
@@ -14,6 +15,14 @@ const router = createRouter({
       meta: {
         title: 'Главная',
       },
+    },
+    {
+      path: '/reg',
+      name: 'reg',
+      component: Reg,
+      meta: {
+        title: 'Регистрация',
+      }
     },
     {
       path: '/exercises',

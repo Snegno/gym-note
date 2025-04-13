@@ -7,6 +7,14 @@ const db = new Database('database.sqlite');
 
 // Создаём таблицу (если её нет)
 db.prepare(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL
+  )
+`).run();
+
+db.prepare(`
   CREATE TABLE IF NOT EXISTS exercises (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
@@ -34,22 +42,51 @@ const app = express();
 app.use(cors()); // Разрешаем CORS для фронтенда
 app.use(express.json()); // Для парсинга JSON-тела запросов
 
+// удаление базы
+if (process.env.RESET_DB === 'true') {
+  fs.unlinkSync(process.env.DB_PATH);
+  console.log('База данных удалена');
+  // Удалите переменную после использования
+}
 
 // todo эндпоинты
 
+// РЕГИСТРАЦИЯ
+app.post('/api/register', (req, res) => {
+  const { name, password } = req.body;
+
+  if (!name || !password) {
+    return res.status(400).json({ error: 'Имя и пароль обязательны' });
+  }
+
+  try {
+    const exists = db.prepare('SELECT 1 FROM users WHERE name = ?').get(name);
+    if (exists) {
+      return res.status(409).json({ error: 'Имя уже занято' });
+    }
+
+    const result = db.prepare(`
+      INSERT INTO users (name, password) 
+      VALUES (?, ?)
+    `).run(name, password);
+
+    res.status(201).json({
+      id: result.lastInsertRowid,
+      name
+    });
+  } catch (err) {
+    console.error('Ошибка регистрации:', err);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// FETCH USERS
 app.get('/api/users', (req, res) => {
   const users = db.prepare('SELECT * FROM users').all();
   res.json(users);
 });
 
-app.post('/api/users', (req, res) => {
-  const { name } = req.body;
-  const result = db.prepare('INSERT INTO users (name) VALUES (?)').run(name);
-  res.json({ id: result.lastInsertRowid });
-});
-
-
-// todo login endpoint
+// LOGIN
 app.post('/api/login', (req, res) => {
   const { name, password } = req.body;
 

@@ -6,6 +6,7 @@
   import { computed, onMounted, ref } from 'vue'
   import api from '@/api/client.js'
   import { useUserStore } from '@/stores/userStore.js'
+  import RegView from '@/views/RegView.vue'
 
   const route = useRoute()
   const userStore = useUserStore()
@@ -40,7 +41,7 @@
   }
 
   onMounted(async () => {
-
+    console.log(route)
     await userStore.initFromStorage()
     getUsers()
   });
@@ -49,7 +50,7 @@
 
 <template>
   <div class="main flex flex-col justify-between">
-    <form v-if="!isLogin" class="flex flex-col gap-3 w-50" style="margin-bottom: 35%">
+    <form v-if="!isLogin & route.name !== 'reg'" class="flex flex-col gap-3 w-50" style="margin-bottom: 35%">
       <div class="flex flex-col">
         <label for="login">login</label>
         <input
@@ -76,7 +77,13 @@
       >
         enter
       </el-button>
+
+      <router-link to="/reg" class="mt-6 underline text-center">Регистрация</router-link>
     </form>
+
+    <template v-else-if="route.name === 'reg'">
+      <RegView />
+    </template>
 
     <div v-else class="flex flex-col justify-between h-full w-full">
       <Header v-if="route.path !== '/'"/>
