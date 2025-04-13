@@ -1,10 +1,22 @@
 import express from 'express';
 import cors from 'cors';
 import Database from 'better-sqlite3';
-import fs from 'fs';
+import fs from 'fs/promises';
 
 // Инициализация SQLite (файл создастся автоматически)
-const db = new Database('database.sqlite');
+const dbPath = process.env.DB_PATH || 'database.sqlite'; // Добавлено получение пути из env
+
+// делет
+if (process.env.RESET_DB === 'true') {
+  console.log('Attempting to reset database...');
+  try {
+    await fs.unlink(dbPath);
+    console.log('Database file deleted');
+  } catch (err) {
+    console.log('Database file does not exist or could not be deleted:', err.message);
+  }
+}
+// конец удаления
 
 // Создаём таблицу (если её нет)
 db.prepare(`
@@ -43,12 +55,6 @@ const app = express();
 app.use(cors()); // Разрешаем CORS для фронтенда
 app.use(express.json()); // Для парсинга JSON-тела запросов
 
-// удаление базы
-if (process.env.RESET_DB === 'true') {
-  fs.unlinkSync(process.env.DB_PATH);
-  console.log('База данных удалена');
-  // Удалите переменную после использования
-}
 
 // todo эндпоинты
 
