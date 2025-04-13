@@ -30,6 +30,8 @@ coverage
 *.tsbuildinfo
 
 # Database
-#database.sqlite
-#*.sqlite
-#server/database.sqlite
+database.sqlite
+*.sqlite
+server/database.sqlite
+
+server/.env

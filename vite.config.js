@@ -5,10 +5,6 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
-
-// https://vite.dev/config/
-//запуск сервера в отдельном окне: n.karsakov@MAC2343 gym-note % node server/index.js
-
 export default defineConfig({
   plugins: [
     vue(),
@@ -22,7 +18,7 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0', // Доступ со всех интерфейсов
-    port: 3003,      // Порт (по умолчанию 5173)
+    port: 3001,      // Порт (по умолчанию 5173)
     //https: true,
     proxy: {
       '/api': {
