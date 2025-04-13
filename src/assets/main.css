@@ -1,0 +1,12 @@
+@import "tailwindcss";
+@import '@/assets/global.less';
+
+#app {
+  width: 100%;
+  height: 100%;
+  background-color: white;
+}
+
+input:focus {
+  outline: none;
+}

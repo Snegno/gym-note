@@ -1,0 +1,57 @@
+.sides {
+  background-color: #424243;
+  color: white;
+}
+
+.exercise_card:empty::before {
+  //content: attr(data-placeholder);
+  color: #999;
+  position: absolute;
+  pointer-events: none; /* Чтобы клик не перехватывался псевдоэлементом */
+}
+
+.exercise_card {
+  outline: none; /* Убираем обводку при фокусе */
+  overflow: hidden; /* Скрываем скролл */
+  font-family: Arial, sans-serif;
+  font-size: 16px;
+  //padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+}
+
+.exercise_card:focus {
+  outline: none; /* Убираем стандартную обводку */
+  border: 2px solid rgba(169, 169, 169, 0.4); /* Добавляем кастомную рамку */
+  box-shadow: 0 0 2px rgba(76, 175, 80, 0.4); /* Добавляем тень */
+}
+
+.el-textarea .el-textarea__inner {
+  font-size: 16px;
+  min-height: 40px !important;
+}
+
+.el-textarea__inner:focus {
+  outline: none;
+  box-shadow: none !important;
+}
+
+// кнопки из element plus
+.el-button--small {
+  padding: 5px 12px !important;
+  font-size: 12px !important;
+  height: 28px !important;
+}
+
+.el-button {
+  padding: 8px 16px !important;
+  font-size: 14px !important;
+  height: 36px !important;
+}
+
+.el-button--large {
+  padding: 12px 20px !important;
+  font-size: 16px !important;
+  height: 60px !important;
+}
