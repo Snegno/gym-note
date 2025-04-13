@@ -15,8 +15,8 @@
 <template>
   <div class="relative min-h-[60px]">
     <div
-      style="color: rgba(255,255,255,0.7); font-size: 34px;"
-      class="absolute left-0.5 top-0 left-0 h-full p-1"
+      style="color: rgba(255,38,38,0.4); font-size: 34px;"
+      class="absolute top-0 left-0 h-full p-1"
       @click="onLogout"
     >
       <IconExit width="30px" height="30px" class="h-full" />

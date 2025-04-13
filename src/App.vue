@@ -103,7 +103,7 @@
 
 <style scoped lang="less">
   .main {
-    height: 100vh;
+    height: 100%;
     background-color: #e8e8e8;
     display: flex;
     justify-content: center;
