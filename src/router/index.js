@@ -1,11 +1,11 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 import Start from '@/views/StartView.vue'
 import Exercises from '@/views/ExercisesView.vue'
 import Days from '@/views/DaysView.vue'
 import Day from '@/views/DayView.vue'
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHashHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
@@ -47,7 +47,6 @@ router.beforeEach((to, from, next) => {
   console.log({to, from, next})
 
   if (to.query && to.query.title) {
-    console.log(111, to.query)
     to.meta.title = to.query.title;
   }
 
