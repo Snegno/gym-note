@@ -1,22 +1,27 @@
 import express from 'express';
 import cors from 'cors';
 import Database from 'better-sqlite3';
-import fs from 'fs/promises';
+import { promises as fs } from 'fs';
 
 // Инициализация SQLite (файл создастся автоматически)
 const dbPath = process.env.DB_PATH || 'database.sqlite'; // Добавлено получение пути из env
+//const app = express();
 
-// делет
-if (process.env.RESET_DB === 'true') {
-  console.log('Attempting to reset database...');
-  try {
-    await fs.unlink(dbPath);
-    console.log('Database file deleted');
-  } catch (err) {
-    console.log('Database file does not exist or could not be deleted:', err.message);
+async function initializeDatabase() {
+  // Сброс БД если требуется
+  if (process.env.RESET_DB === 'true') {
+    console.log('Attempting to reset database...');
+    try {
+      await fs.unlink(dbPath);
+      console.log('Database file deleted');
+    } catch (err) {
+      console.log('Database file does not exist or could not be deleted:', err.message);
+    }
   }
 }
-// конец удаления
+
+  // Инициализация БД
+  const db = new Database(dbPath);
 
 // Создаём таблицу (если её нет)
 db.prepare(`
@@ -55,7 +60,8 @@ const app = express();
 app.use(cors()); // Разрешаем CORS для фронтенда
 app.use(express.json()); // Для парсинга JSON-тела запросов
 
-
+  initializeDatabase()
+    .then(db => {
 // todo эндпоинты
 
 // РЕГИСТРАЦИЯ
@@ -420,6 +426,12 @@ app.delete('/api/day_exercises/:exercise_id', (req, res) => {
 app.listen(3001, () => {
   console.log('Server running on port 3001')
 })
+
+})
+.catch(err => {
+  console.error('Failed to initialize database:', err);
+  process.exit(1);
+});
 
 // Экспортируем app для vite-plugin-express
 export default app;
