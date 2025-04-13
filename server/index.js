@@ -2,8 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import Database from 'better-sqlite3';
 
+const dbPath = process.env.DB_PATH || 'database.sqlite';
 // Инициализация SQLite (файл создастся автоматически)
-const db = new Database('database.sqlite');
+const db = new Database(dbPath);
 
 // Создаём таблицу (если её нет)
 db.prepare(`
