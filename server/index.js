@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import Database from 'better-sqlite3';
+import fs from 'fs';
 
 // Инициализация SQLite (файл создастся автоматически)
 const db = new Database('database.sqlite');
