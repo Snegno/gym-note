@@ -14,6 +14,8 @@
 
   const isSended = ref(true)
 
+  const isLoading = ref(false)
+
   const onAddCard = () => {
     if (!cards.value[cards.value.length-1]?.description) return
 
@@ -31,6 +33,7 @@
 
   const getExercisesCards = async () => {
     try {
+      isLoading.value = true
       const response = await api.get(`/exercises/${userStore.getUser.id}`)
       cards.value = response.data
 
@@ -44,6 +47,8 @@
       }
     } catch (error) {
       console.error('Ошибка загрузки:', error);
+    } finally {
+      isLoading.value = false
     }
   }
 
@@ -91,7 +96,7 @@
 </script>
 
 <template>
-  <div class="flex flex-col h-full items-center m-2 gap-2 overflow-auto pb-20">
+  <div v-loading="isLoading" class="flex flex-col h-full items-center m-2 gap-2 overflow-auto pb-20">
     <div
       v-for="(tab, index) in cards"
       :key="tab.id"

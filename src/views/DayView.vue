@@ -21,8 +21,10 @@
 
   const currentCard = ref(null)
 
+  const isLoading = ref(false)
+
   const getDayExercises = async () => {
-    console.log('getDayExercises')
+    isLoading.value = true
     try {
       const response = await api.get(`/day_exercises/${route.query.id}`, {
         params: {
@@ -32,6 +34,8 @@
       initialPreSelectedCards(response.data)
     } catch (error) {
       console.error('Ошибка загрузки:', error);
+    } finally {
+      isLoading.value = false
     }
   }
 
@@ -134,8 +138,8 @@
 
   onMounted(async() => {
     console.log('mounted')
-    await getExercisesCards()
     await getDayExercises()
+    await getExercisesCards()
   })
 
   const OnCloseModal = () => canShowModal.value = false
@@ -143,7 +147,7 @@
 </script>
 
 <template>
-  <div class="w-full h-full flex flex-col items-center gap-2 p-2">
+  <div v-loading="isLoading" class="w-full h-full flex flex-col items-center gap-2 p-2">
     <div
       v-for="card in selectedCards"
       :key="card.id"

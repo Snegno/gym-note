@@ -16,6 +16,8 @@
     password: null,
   })
 
+  const isLoading = ref(false)
+
   const isLogin = computed(() => userStore.getAuthStatus)
 
   watch(() => isLogin.value, value => {
@@ -26,11 +28,13 @@
 
   const onLogin = async () => {
     try {
+      isLoading.value = true
       await userStore.login(user.value)
     } catch (err) {
       console.error('Error:', err)
+    } finally {
+      isLoading.value = false
     }
-
   }
 
   onMounted(async () => {
@@ -41,7 +45,7 @@
 </script>
 
 <template>
-  <div class="main flex flex-col justify-between">
+  <div v-loading="isLoading" class="main flex flex-col justify-between">
     <form v-if="!isLogin & route.name !== 'reg'" class="flex flex-col gap-3 w-50" style="margin-bottom: 35%">
       <div class="flex flex-col">
         <label for="login">login</label>
