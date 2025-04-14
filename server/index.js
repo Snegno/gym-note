@@ -21,13 +21,13 @@ app.use(cors({
 app.use(express.json()); // Для парсинга JSON-тела запросов
 
 // Явно обрабатываем OPTIONS-запросы для всех роутов
-app.options('*', cors());
+//app.options('*', cors());
 
 
 // todo эндпоинты
 
 // РЕГИСТРАЦИЯ
-app.post('/api/register', async (req, res) => { // ===== CHANGED FOR SUPABASE =====
+app.post('/api/register', async (req, res) => {
   const { name, password } = req.body;
 
   if (!name || !password) {
@@ -63,7 +63,7 @@ app.post('/api/register', async (req, res) => { // ===== CHANGED FOR SUPABASE ==
 
 
 // FETCH USERS
-app.get('/api/users', async (req, res) => { // ===== CHANGED FOR SUPABASE =====
+app.get('/api/users', async (req, res) => {
   try {
     const { data, error } = await supabase.from('users').select('*');
     if (error) throw error;
@@ -74,7 +74,7 @@ app.get('/api/users', async (req, res) => { // ===== CHANGED FOR SUPABASE =====
 });
 
 // LOGIN
-app.post('/api/login', async (req, res) => { // ===== CHANGED FOR SUPABASE =====
+app.post('/api/login', async (req, res) => {
   const { name, password } = req.body;
 
   if (!name || !password) {
@@ -105,7 +105,7 @@ app.post('/api/login', async (req, res) => { // ===== CHANGED FOR SUPABASE =====
 
 // todo Добавление и Обновление упражнения
 
-app.post('/api/exercises', async (req, res) => { // ===== CHANGED FOR SUPABASE =====
+app.post('/api/exercises', async (req, res) => {
   const { id, user_id, description } = req.body;
 
   if (!user_id || !description) {
@@ -163,7 +163,7 @@ app.get('/api/exercises/:user_id', async (req, res) => {
 // todo Удаление упражнения
 app.delete('/api/exercises/:id', async (req, res) => {
   const { id } = req.params;
-  const { user_id } = req.query;
+  const user_id = parseInt(req.query.user_id);
 
   if (!user_id) {
     return res.status(400).json({ error: 'Необходим user_id' });
