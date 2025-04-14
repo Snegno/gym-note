@@ -22,8 +22,8 @@ export const useUserStore = defineStore('user', () => {
       isAuthenticated.value = true;
 
       // Сохраняем в LocalStorage
-      localStorage.setItem('user', JSON.stringify(response.data));
-      localStorage.setItem('isAuthenticated', 'true');
+      sessionStorage.setItem('user', JSON.stringify(response.data));
+      sessionStorage.setItem('isAuthenticated', 'true');
 
       return true;
     } catch (err) {
@@ -35,17 +35,17 @@ export const useUserStore = defineStore('user', () => {
   const logout = () => {
     user.value = null
     isAuthenticated.value = false
-    localStorage.removeItem('user')
-    localStorage.removeItem('isAuthenticated')
+    sessionStorage.removeItem('user')
+    sessionStorage.removeItem('isAuthenticated')
     router.push('/')
   };
 
   // Инициализация из LocalStorage
   const initFromStorage = () => {
-    const storedUser = localStorage.getItem('user');
+    const storedUser = sessionStorage.getItem('user');
     if (storedUser) {
       user.value = JSON.parse(storedUser);
-      isAuthenticated.value = localStorage.getItem('isAuthenticated') === 'true';
+      isAuthenticated.value = sessionStorage.getItem('isAuthenticated') === 'true';
     }
   };
 
