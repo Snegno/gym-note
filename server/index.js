@@ -10,8 +10,18 @@ const supabase = createClient(
 );
 
 const app = express();
-app.use(cors()); // Разрешаем CORS для фронтенда
+
+app.use(cors({
+  origin: true, // Автоматически разрешает текущий origin
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true // Если используете аутентификацию
+}));
+
 app.use(express.json()); // Для парсинга JSON-тела запросов
+
+// Явно обрабатываем OPTIONS-запросы для всех роутов
+app.options('*', cors());
 
 
 // todo эндпоинты
