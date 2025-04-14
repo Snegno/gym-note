@@ -198,45 +198,61 @@
     </el-button>
   </div>
 
-  <div
-    v-if="canShowModal"
-    class="day_modal shadow"
-    v-click-outside="OnCloseModal"
-  >
-    <div class="title mb-3 w-full text-center relative">
-      <h4>Упражнения</h4>
-      <IconClose
-        class="absolute top-[-4px] right-[-4px]"
-        @click="canShowModal = false"
-      />
-    </div>
+  <div v-if="canShowModal" class="day_modal__wrapper">
     <div
-      v-for="card in gotCards"
-      :key="card.id"
-      class="card relative"
-      :class="{ 'shadow shadow-2xl shadow-md rounded-lg' : selectedCards.some(item => item.id === card.id) }"
-      @click="onSelectCard(card)"
+      class="day_modal shadow"
+      v-click-outside="OnCloseModal"
     >
-      {{ card.description }}
+      <div class="title mb-3 w-full text-center relative">
+        <p class="text-[22px]">Упражнения</p>
+        <IconClose
+          class="absolute top-[-6px] right-[-4px]"
+          @click="canShowModal = false"
+        />
+      </div>
       <div
-        v-show="selectedCards.some(item => item.id === card.id)"
-        class="absolute right-1 top-1.5"
+        v-for="card in gotCards"
+        :key="card.id"
+        class="card relative"
+        :class="{ 'shadow shadow-2xl shadow-md rounded-lg' : selectedCards.some(item => item.id === card.id) }"
+        @click="onSelectCard(card)"
       >
-        <IconDone />
+        {{ card.description }}
+        <div
+          v-show="selectedCards.some(item => item.id === card.id)"
+          class="absolute right-1 top-1.5"
+        >
+          <IconDone/>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped lang="less">
+
+  .day_modal__wrapper {
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1001;
+    position: fixed;
+    height: 100%;
+    width: 100%;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+  }
+
   .day_modal {
+    z-index: 1002;
+    pointer-events: auto;
     display: flex;
     flex-direction: column;
     gap: 8px;
     align-items: center;
     position: fixed;
     padding: 8px;
-    top: 5%;
+    top: 0;
+    padding-top: 10px;
     width: 100%;
     height: 100%;
     background-color: #f0efef;
