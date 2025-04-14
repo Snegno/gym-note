@@ -3,7 +3,7 @@
   import Header from '@/components/Header.vue'
   import { useRoute } from 'vue-router'
   import Footer from '@/components/Footer.vue'
-  import { computed, onMounted, ref } from 'vue'
+  import { computed, onMounted, ref, watch } from 'vue'
   import api from '@/api/client.js'
   import { useUserStore } from '@/stores/userStore.js'
   import RegView from '@/views/RegView.vue'
@@ -11,25 +11,18 @@
   const route = useRoute()
   const userStore = useUserStore()
 
-  const getUsers = async () => {
-    const res = await api.get(`/users`)
-  }
-
-  // const addUser = async () => {
-  //   try {
-  //     const res = await api.post('/users', { name: 'natali' });
-  //     console.log('User added:', res.data);
-  //   } catch (error) {
-  //     console.error('Error:', error.response?.data || error.message);
-  //   }
-  // }
-
   const user = ref({
     name: null,
     password: null,
   })
 
   const isLogin = computed(() => userStore.getAuthStatus)
+
+  watch(() => isLogin.value, value => {
+    if (!value) {
+      userStore.logout()
+    }
+  })
 
   const onLogin = async () => {
     try {
@@ -43,8 +36,7 @@
   onMounted(async () => {
     console.log(route)
     await userStore.initFromStorage()
-    getUsers()
-  });
+  })
 
 </script>
 

@@ -43,6 +43,19 @@ const app = express();
 app.use(cors()); // Разрешаем CORS для фронтенда
 app.use(express.json()); // Для парсинга JSON-тела запросов
 
+// todo роут для проверки БД
+/*
+После деплоя в браузере:
+https://your-service.onrender.com/api/debug/db
+ */
+
+app.get('/api/debug/db', (req, res) => {
+  const users = db.prepare('SELECT * FROM users').all();
+  const exercises = db.prepare('SELECT * FROM exercises').all();
+
+  res.json({ users, exercises });
+});
+
 
 // todo эндпоинты
 
