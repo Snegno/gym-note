@@ -1,66 +1,23 @@
 import express from 'express';
 import cors from 'cors';
-import Database from 'better-sqlite3';
+import { createClient } from '@supabase/supabase-js';
+import 'dotenv/config';
 
-const dbPath = process.env.DB_PATH || 'database.sqlite';
-// Инициализация SQLite (файл создастся автоматически)
-const db = new Database(dbPath);
-
-// Создаём таблицу (если её нет)
-db.prepare(`
-  CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL
-  )
-`).run();
-
-db.prepare(`
-  CREATE TABLE IF NOT EXISTS exercises (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    description TEXT NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-  )
-`).run();
-
-db.prepare(`
-  CREATE TABLE IF NOT EXISTS day_exercises (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    day_id INTEGER NOT NULL,
-    user_id INTEGER NOT NULL,
-    exercise_id INTEGER NOT NULL,
-    exercise_description TEXT NOT NULL,
-    weight INTEGER,
-    count INTEGER,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-    FOREIGN KEY (exercise_id) REFERENCES exercises(id),
-    UNIQUE (day_id, exercise_id)
- )
-`).run();
+// Инициализация Supabase
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_KEY,
+);
 
 const app = express();
 app.use(cors()); // Разрешаем CORS для фронтенда
 app.use(express.json()); // Для парсинга JSON-тела запросов
 
-// todo роут для проверки БД
-/*
-После деплоя в браузере:
-https://your-service.onrender.com/api/debug/db
- */
-
-app.get('/api/debug/db', (req, res) => {
-  const users = db.prepare('SELECT * FROM users').all();
-  const exercises = db.prepare('SELECT * FROM exercises').all();
-
-  res.json({ users, exercises });
-});
-
 
 // todo эндпоинты
 
 // РЕГИСТРАЦИЯ
-app.post('/api/register', (req, res) => {
+app.post('/api/register', async (req, res) => { // ===== CHANGED FOR SUPABASE =====
   const { name, password } = req.body;
 
   if (!name || !password) {
@@ -68,34 +25,46 @@ app.post('/api/register', (req, res) => {
   }
 
   try {
-    const exists = db.prepare('SELECT 1 FROM users WHERE name = ?').get(name);
-    if (exists) {
+    // Проверка существующего пользователя
+    const { data: existing } = await supabase
+      .from('users')
+      .select('*')
+      .eq('name', name)
+      .single();
+
+    if (existing) {
       return res.status(409).json({ error: 'Имя уже занято' });
     }
 
-    const result = db.prepare(`
-      INSERT INTO users (name, password) 
-      VALUES (?, ?)
-    `).run(name, password);
+    // Создание пользователя
+    const { data: user, error } = await supabase
+      .from('users')
+      .insert([{ name, password }])
+      .select()
+      .single();
 
-    res.status(201).json({
-      id: result.lastInsertRowid,
-      name
-    });
+    if (error) throw error;
+    res.status(201).json(user);
   } catch (err) {
     console.error('Ошибка регистрации:', err);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
+
 // FETCH USERS
-app.get('/api/users', (req, res) => {
-  const users = db.prepare('SELECT * FROM users').all();
-  res.json(users);
+app.get('/api/users', async (req, res) => { // ===== CHANGED FOR SUPABASE =====
+  try {
+    const { data, error } = await supabase.from('users').select('*');
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // LOGIN
-app.post('/api/login', (req, res) => {
+app.post('/api/login', async (req, res) => { // ===== CHANGED FOR SUPABASE =====
   const { name, password } = req.body;
 
   if (!name || !password) {
@@ -103,13 +72,14 @@ app.post('/api/login', (req, res) => {
   }
 
   try {
-    // Ищем пользователя в БД
-    const user = db.prepare(`
-      SELECT id, name FROM users 
-      WHERE name = ? AND password = ?
-    `).get(name, password);
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id, name')
+      .eq('name', name)
+      .eq('password', password)
+      .single();
 
-    if (!user) {
+    if (error || !user) {
       return res.status(401).json({ error: 'Неверные учетные данные' });
     }
 
@@ -124,71 +94,64 @@ app.post('/api/login', (req, res) => {
 // todo Exercises endpoint
 
 // todo Добавление и Обновление упражнения
-app.post('/api/exercises', (req, res) => {
+
+app.post('/api/exercises', async (req, res) => { // ===== CHANGED FOR SUPABASE =====
   const { id, user_id, description } = req.body;
 
-  // Валидация
   if (!user_id || !description) {
     return res.status(400).json({ error: 'user_id и description обязательны' });
   }
 
   try {
     if (id) {
-      // Обновление существующей записи
-      const result = db.prepare(`
-        UPDATE exercises 
-        SET description = ? 
-        WHERE id = ? AND user_id = ?
-      `).run(description, id, user_id);
+      // Обновление
+      const { data, error } = await supabase
+        .from('exercises')
+        .update({ description })
+        .eq('id', id)
+        .eq('user_id', user_id)
+        .select()
+        .single();
 
-      if (result.changes === 0) {
-        return res.status(404).json({ error: 'Упражнение не найдено' });
-      }
-
-      return res.json({
-        id,
-        description,
-        message: 'Упражнение обновлено'
-      });
+      if (error) throw error;
+      res.json({ ...data, message: 'Упражнение обновлено' });
     } else {
-      // Создание новой записи
-      const result = db.prepare(`
-        INSERT INTO exercises (user_id, description)
-        VALUES (?, ?)
-      `).run(user_id, description);
+      // Создание
+      const { data, error } = await supabase
+        .from('exercises')
+        .insert([{ user_id, description }])
+        .select()
+        .single();
 
-      return res.json({
-        id: result.lastInsertRowid,
-        description,
-        message: 'Упражнение создано'
-      });
+      if (error) throw error;
+      res.json({ ...data, message: 'Упражнение создано' });
     }
   } catch (err) {
-    console.error('Ошибка базы данных:', err);
+    console.error('Ошибка:', err);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
 // todo Получение упражнений пользователя
-app.get('/api/exercises/:user_id', (req, res) => {
+app.get('/api/exercises/:user_id', async (req, res) => {
   const { user_id } = req.params;
 
   try {
-    const exercises = db.prepare(`
-      SELECT id, description 
-      FROM exercises
-      WHERE user_id = ?
-    `).all(user_id);
+    const { data, error } = await supabase
+      .from('exercises')
+      .select('id, description')
+      .eq('user_id', user_id);
 
-    res.json(exercises);
+    if (error) throw error;
+    res.json(data);
   } catch (err) {
-    console.error('Database error:', err);
-    res.status(500).json({ error: 'Failed to fetch exercises' });
+    console.error('Ошибка:', err);
+    res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
 // todo Удаление упражнения
-app.delete('/api/exercises/:id', (req, res) => {
+app.delete('/api/exercises/:id', async (req, res) => {
   const { id } = req.params;
   const { user_id } = req.query;
 
@@ -197,37 +160,36 @@ app.delete('/api/exercises/:id', (req, res) => {
   }
 
   try {
-    // 1. Проверяем, используется ли упражнение в day_exercises
-    const usedInDays = db.prepare(`
-      SELECT 1 FROM day_exercises 
-      WHERE exercise_id = ? AND user_id = ?
-      LIMIT 1
-    `).get(id, user_id);
+    // 1. Проверка использования в day_exercises
+    const { data: usedInDays } = await supabase
+      .from('day_exercises')
+      .select('id')
+      .eq('exercise_id', id)
+      .eq('user_id', user_id)
+      .limit(1);
 
-    if (usedInDays) {
+    if (usedInDays && usedInDays.length > 0) {
       return res.status(409).json({
         error: 'Нельзя удалить: упражнение используется в программе тренировок',
         solution: 'Сначала удалите все упоминания из day_exercises'
       });
     }
 
-    // 2. Если не используется - удаляем
-    const result = db.prepare(`
-      DELETE FROM exercises 
-      WHERE id = ? AND user_id = ?
-    `).run(id, user_id);
+    // 2. Удаление упражнения
+    const { error, count } = await supabase
+      .from('exercises')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user_id);
 
-    if (result.changes === 0) {
-      return res.status(404).json({ error: 'Упражнение не найдено' });
-    }
+    if (error) throw error;
 
     res.json({
       success: true,
       message: 'Упражнение удалено'
     });
-
   } catch (err) {
-    console.error('Ошибка удаления:', err);
+    console.error('Ошибка:', err);
     res.status(500).json({
       error: 'Ошибка сервера',
       details: process.env.NODE_ENV === 'development' ? err.message : null
@@ -237,7 +199,8 @@ app.delete('/api/exercises/:id', (req, res) => {
 
 // todo: Day Exercises
 
-app.post('/api/day_exercises', (req, res) => {
+// создание-обновление упражнения по дню
+app.post('/api/day_exercises', async (req, res) => {
   const {
     day_id,
     user_id,
@@ -245,97 +208,73 @@ app.post('/api/day_exercises', (req, res) => {
     exercise_description,
     weight,
     count,
-    is_update = false // Флаг, указывающий, что это обновление
+    is_update = false
   } = req.body;
 
   // Валидация
-  if (!day_id === undefined || !day_id === null || !user_id || (!exercise_id && !exercise_description)) {
-    console.log({day_id, exercise_id, exercise_description});
+  if (day_id === undefined || day_id === null || !user_id || (!exercise_id && !exercise_description)) {
     return res.status(400).json({
       error: 'Обязательные поля: day_id, user_id и (exercise_id ИЛИ exercise_description)'
     });
   }
 
-  // Если exercise_id передан, проверяем дубликаты (кроме случая, когда это обновление)
-  if (exercise_id && !is_update) {
-    const existing = db.prepare(`
-        SELECT 1 FROM day_exercises
-        WHERE day_id = ? AND exercise_id = ? AND user_id = ?
-    `).get(day_id, exercise_id, user_id);
-
-    if (existing) {
-      return res.status(409).json({
-        error: 'Это упражнение уже добавлено в данный день'
-      });
-    }
-  }
-
   try {
-    // Если is_update = true, пробуем обновить существующую запись
     if (is_update) {
+      // Обновление существующей записи
       if (!exercise_id) {
         return res.status(400).json({ error: 'Для обновления exercise_id обязателен' });
       }
 
-      const result = db.prepare(`
-          UPDATE day_exercises
-          SET
-              exercise_description = ?,
-              weight = ?,
-              count = ?
-          WHERE day_id = ? AND exercise_id = ? AND user_id = ?
-      `).run(
-        exercise_description || 'Без названия',
-        weight ?? null,
-        count ?? null,
-        day_id,
-        exercise_id,
-        user_id
-      );
+      const { data, error } = await supabase
+        .from('day_exercises')
+        .update({
+          exercise_description: exercise_description || 'Без названия',
+          weight: weight ?? null,
+          count: count ?? null
+        })
+        .eq('day_id', day_id)
+        .eq('exercise_id', exercise_id)
+        .eq('user_id', user_id)
+        .select();
 
-      if (result.changes === 0) {
-        return res.status(404).json({ error: 'Запись не найдена' });
+      if (error) throw error;
+      res.json(data[0]);
+    } else {
+      // Создание новой записи
+      // Проверка дубликатов
+      if (exercise_id) {
+        const { data: existing } = await supabase
+          .from('day_exercises')
+          .select('id')
+          .eq('day_id', day_id)
+          .eq('exercise_id', exercise_id)
+          .eq('user_id', user_id)
+          .limit(1);
+
+        if (existing && existing.length > 0) {
+          return res.status(409).json({
+            error: 'Это упражнение уже добавлено в данный день'
+          });
+        }
       }
 
-      return res.json({
-        day_id,
-        exercise_id,
-        exercise_description,
-        weight,
-        count
-      });
-    }
-    // Иначе создаем новую запись
-    else {
-      const result = db.prepare(`
-        INSERT INTO day_exercises (
+      const { data, error } = await supabase
+        .from('day_exercises')
+        .insert([{
           day_id,
           user_id,
-          exercise_id,
-          exercise_description,
-          weight,
-          count
-        ) VALUES (?, ?, ?, ?, ?, ?)
-      `).run(
-        day_id,
-        user_id,
-        exercise_id || null,
-        exercise_description || 'Без названия',
-        weight ?? null,
-        count ?? null
-      );
+          exercise_id: exercise_id || null,
+          exercise_description: exercise_description || 'Без названия',
+          weight: weight ?? null,
+          count: count ?? null
+        }])
+        .select();
 
-      return res.json({
-        id: result.lastInsertRowid,
-        day_id,
-        exercise_id,
-        exercise_description,
-        weight,
-        count
-      });
+      if (error) throw error;
+      res.json(data[0]);
     }
   } catch (err) {
-    console.error('Ошибка базы данных:', err);
+    console.error('Ошибка:', err);
     res.status(500).json({
       error: 'Ошибка сервера',
       details: process.env.NODE_ENV === 'development' ? err.message : null
@@ -344,7 +283,7 @@ app.post('/api/day_exercises', (req, res) => {
 });
 
 // получения упражнений по дню
-app.get('/api/day_exercises/:day_id', (req, res) => {
+app.get('/api/day_exercises/:day_id', async (req, res) => {
   const day_id = parseInt(req.params.day_id);
   const user_id = parseInt(req.query.user_id);
 
@@ -353,65 +292,64 @@ app.get('/api/day_exercises/:day_id', (req, res) => {
   }
 
   try {
-    const exercises = db.prepare(`
-      SELECT 
-        de.id,
-        de.day_id,
-        de.exercise_id,
-        de.exercise_description,
-        de.weight,
-        de.count,
-        e.description as base_exercise_description
-      FROM day_exercises de
-      LEFT JOIN exercises e ON de.exercise_id = e.id
-      WHERE de.day_id = ? AND de.user_id = ?
-      ORDER BY de.id
-    `).all(day_id, user_id);
+    const { data, error } = await supabase
+      .from('day_exercises')
+      .select(`
+        id,
+        day_id,
+        exercise_id,
+        exercise_description,
+        weight,
+        count,
+        exercises!inner(description)
+      `)
+      .eq('day_id', day_id)
+      .eq('user_id', user_id)
+      .order('id', { ascending: true });
 
-    res.json(exercises);
+    if (error) throw error;
+
+    const formattedData = data.map(item => ({
+      ...item,
+      base_exercise_description: item.exercises.description
+    }));
+
+    res.json(formattedData);
   } catch (err) {
-    console.error('Ошибка базы данных:', err);
+    console.error('Ошибка:', err);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
 
 //todo эндпоинт удаления упражнения из дня
-app.delete('/api/day_exercises/:exercise_id', (req, res) => {
+app.delete('/api/day_exercises/:exercise_id', async (req, res) => {
   const exercise_id = parseInt(req.params.exercise_id);
   const user_id = parseInt(req.query.user_id);
   const day_id = parseInt(req.query.day_id);
 
-  console.log({ exercise_id, user_id, day_id });
-  // Валидация
   if (!exercise_id || !user_id) {
     return res.status(400).json({
       error: 'Обязательные параметры: exercise_id, user_id и day_id'
     });
   }
 
-  console.log(`Deleting exercise with exercise_id: ${exercise_id}, user_id: ${user_id}, day_id: ${day_id}`);
-
-
   try {
-    // Удаляем только если совпадает и day_id и user_id
-    const result = db.prepare(`
-      DELETE FROM day_exercises
-      WHERE exercise_id = ? AND user_id = ? AND day_id = ?
-    `).run(exercise_id, user_id, day_id);
+    const { error, count } = await supabase
+      .from('day_exercises')
+      .delete()
+      .eq('exercise_id', exercise_id)
+      .eq('user_id', user_id)
+      .eq('day_id', day_id);
 
-    if (result.changes === 0) {
-      return res.status(404).json({
-        error: 'Упражнение не найдено или нет прав доступа'
-      });
-    }
+    if (error) throw error;
 
     res.json({
       success: true,
       message: `Упражнение удалено из дня ${day_id}`
     });
   } catch (err) {
-    console.error('Ошибка удаления:', err);
+    console.error('Ошибка:', err);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });

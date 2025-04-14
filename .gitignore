@@ -34,4 +34,4 @@ database.sqlite
 *.sqlite
 server/database.sqlite
 
-server/.env
+.env

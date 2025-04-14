@@ -22,6 +22,7 @@
   const currentCard = ref(null)
 
   const getDayExercises = async () => {
+    console.log('getDayExercises')
     try {
       const response = await api.get(`/day_exercises/${route.query.id}`, {
         params: {
@@ -35,6 +36,7 @@
   }
 
   const initialPreSelectedCards = gotExercise => {
+    console.log('initialPreSelectedCards')
     selectedCards.value = gotExercise.map(item => {
       return {
         id: item.exercise_id,
@@ -57,14 +59,15 @@
         count: card.count || 0,
       })
 
-      await getDayExercises()
-      await getExercisesCards()
+      getDayExercises()
+      getExercisesCards()
     } catch (error) {
       console.error('Ошибка добавления:', error.response?.data);
     }
   }
 
   const updateDayExercise = async card => {
+    console.log('updateDayExercise')
     currentCard.value = card
 
     try {
@@ -78,14 +81,14 @@
         is_update: true,
       })
 
-      await getDayExercises()
-      await getExercisesCards()
+      getDayExercises()
+      getExercisesCards()
     } catch (error) {
       console.error('Ошибка добавления:', error.response?.data);
     }
   }
 
-  const onChangeCardDebounce = debounce(card => updateDayExercise(card), 600)
+  const onChangeCardDebounce = debounce(card => updateDayExercise(card), 1000)
 
   const onChangeCard = card => {
     onChangeCardDebounce(card)
@@ -130,6 +133,7 @@
   }
 
   onMounted(async() => {
+    console.log('mounted')
     await getExercisesCards()
     await getDayExercises()
   })
@@ -160,7 +164,7 @@
             v-model="card.weight"
             @input="onChangeCard(card)"
             @click.stop="() => card.weight=''"
-            @focusout="() => getDayExercises()"
+            @focusout="() => {}"
           >
           <span class="ms-2">кг</span>
         </div>
@@ -171,7 +175,7 @@
             v-model="card.count"
             @input="onChangeCard(card)"
             @click.stop="() => card.count=''"
-            @focusout="() => getDayExercises()"
+            @focusout="() => {}"
           >
           <span class="ms-2">раз</span>
         </div>
