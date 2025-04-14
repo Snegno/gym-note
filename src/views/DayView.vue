@@ -23,6 +23,8 @@
 
   const isLoading = ref(false)
 
+  const isLoaded = ref(false)
+
   const getDayExercises = async () => {
     isLoading.value = true
     try {
@@ -92,7 +94,7 @@
     }
   }
 
-  const onChangeCardDebounce = debounce(card => updateDayExercise(card), 1000)
+  const onChangeCardDebounce = debounce(card => updateDayExercise(card), 600)
 
   const onChangeCard = card => {
     onChangeCardDebounce(card)
@@ -140,6 +142,8 @@
     console.log('mounted')
     await getDayExercises()
     await getExercisesCards()
+
+    isLoaded.value = true
   })
 
   const OnCloseModal = () => canShowModal.value = false
@@ -147,7 +151,7 @@
 </script>
 
 <template>
-  <div v-loading="isLoading" class="w-full h-full flex flex-col items-center gap-2 p-2">
+  <div v-loading="isLoading & !isLoaded" class="w-full h-full flex flex-col items-center gap-2 p-2">
     <div
       v-for="card in selectedCards"
       :key="card.id"
