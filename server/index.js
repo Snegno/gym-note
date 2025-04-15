@@ -26,6 +26,18 @@ app.use(express.json()); // Для парсинга JSON-тела запросо
 
 // todo эндпоинты
 
+// самопинг чтобы не засыпал render
+const pingSelf = () => {
+  fetch('https://gym-note.onrender.com/api/ping')
+    .then(res => console.log('Self-ping success'))
+    .catch(err => console.error('Self-ping error:', err));
+};
+
+// Запускаем каждые 10 минуты
+setInterval(pingSelf, 10 * 60 * 1000);
+
+//
+
 // РЕГИСТРАЦИЯ
 app.post('/api/register', async (req, res) => {
   const { name, password } = req.body;
