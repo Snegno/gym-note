@@ -1,0 +1,10 @@
+// for wake-up render with api/ping
+{
+  "crons": [
+    {
+      "path": "/api/ping",
+      "schedule": "*/5 * * * *",
+      "timezone": "Europe/Moscow"
+    }
+  ]
+}
