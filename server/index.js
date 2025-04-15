@@ -28,7 +28,7 @@ app.use(express.json()); // Для парсинга JSON-тела запросо
 
 // самопинг чтобы не засыпал render
 const pingSelf = () => {
-  fetch('https://gym-note.onrender.com/api/ping')
+  fetch('/api/ping')
     .then(res => console.log('Self-ping success'))
     .catch(err => console.error('Self-ping error:', err));
 };
