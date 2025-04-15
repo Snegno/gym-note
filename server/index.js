@@ -26,10 +26,15 @@ app.use(express.json()); // Для парсинга JSON-тела запросо
 
 // todo эндпоинты
 
-// wake-up for render
-app.get('/api/ping', (req, res) => {
-  res.json({ status: 'awake', timestamp: new Date().toISOString() });
-});
+// самопинг чтобы не засыпал render
+const pingSelf = () => {
+  fetch('https://gym-note.onrender.com/api/ping')
+    .then(res => console.log('Self-ping success'))
+    .catch(err => console.error('Self-ping error:', err));
+};
+
+// Запускаем каждые 5 минут
+setInterval(pingSelf, 5 * 60 * 1000);
 
 //
 
