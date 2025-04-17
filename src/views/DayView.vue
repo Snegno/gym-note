@@ -42,7 +42,6 @@
   }
 
   const initialPreSelectedCards = gotExercise => {
-    console.log('initialPreSelectedCards')
     selectedCards.value = gotExercise.map(item => {
       return {
         id: item.exercise_id,
@@ -83,7 +82,7 @@
         exercise_id: card.id,
         exercise_description: card.description,
         weight: +card.weight,
-        count: +card.count || 0,
+        count: +card.count || null,
         is_update: true,
       })
 
@@ -94,7 +93,7 @@
     }
   }
 
-  const onChangeCardDebounce = debounce(card => updateDayExercise(card), 600)
+  const onChangeCardDebounce = debounce(card => updateDayExercise(card), 3000)
 
   const onChangeCard = card => {
     onChangeCardDebounce(card)
@@ -138,20 +137,68 @@
     }
   }
 
+  const OnCloseModal = () => canShowModal.value = false
+
+  const timer = ref(null)
+  const interval_id = ref(null)
+
+  let audioContext = null
+
+  // Инициализация аудиоконтекста при первом взаимодействии
+  const initAudio = () => {
+    if (!audioContext) {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)()
+    }
+  }
+
+  // Основная функция бипа
+  const beep = (frequency = 400, duration = 0.5, type = 'triangle') => {
+    initAudio()
+
+    const oscillator = audioContext.createOscillator()
+    oscillator.type = type
+    oscillator.frequency.value = frequency
+    oscillator.connect(audioContext.destination)
+
+    oscillator.start()
+    oscillator.stop(audioContext.currentTime + duration)
+  }
+
+  const onTimerStart = () => {
+    const saved_timer = timer.value
+
+    if (interval_id.value) {
+      clearInterval(interval_id.value)
+    }
+
+    interval_id.value = setInterval(() => {
+      if (timer.value > 0) {
+        timer.value --
+      } else if (timer.value === 0) {
+        clearInterval(interval_id.value)
+        timer.value = saved_timer
+        beep(900, 0.2, 'triangle')
+      }
+    }, 1000)
+  }
+
   onMounted(async() => {
-    console.log('mounted')
     await getDayExercises()
     await getExercisesCards()
 
-    isLoaded.value = true
+    setTimeout(() => isLoaded.value = true, 200)
+    // isLoaded.value = true
   })
 
-  const OnCloseModal = () => canShowModal.value = false
+
 
 </script>
 
 <template>
-  <div v-loading="isLoading & !isLoaded" class="w-full h-full flex flex-col items-center gap-2 p-2">
+  <div
+    v-loading="isLoading & !isLoaded"
+    class="w-full h-full flex flex-col items-center gap-2 p-2 overflow-y-auto"
+  >
     <div
       v-for="card in selectedCards"
       :key="card.id"
@@ -193,6 +240,20 @@
           class="transition-all duration-400 ease-in-out"
           :class="{ 'rotate-0' : card.can_show , 'rotate-180' : !card.can_show }"
         />
+      </div>
+    </div>
+
+    <div v-if="isLoaded" class="absolute top-[0px] h-[25px] right-[-2px] flex gap-0 w-20 mt-5 opacity-50" @click.stop>
+      <input
+        v-model="timer"
+        class="w-[40px] border border-red rounded-md text-center bg-gray-300"
+        type="number"
+      >
+      <div class="w-full h-full flex items-center" @click="onTimerStart">
+        <svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="50" cy="47" r="35" fill="#FF5349" stroke="#333" stroke-width="3"/>
+          <line x1="50" y1="35" x2="50" y2="65" stroke="#333" stroke-width="3" stroke-linecap="round"/>
+        </svg>
       </div>
     </div>
 

@@ -17,13 +17,13 @@ export const useUserStore = defineStore('user', () => {
   const login = async user_data => {
     try {
       const response = await api.post('/login', user_data);
-      console.log({response})
+
       user.value = response.data;
       isAuthenticated.value = true;
 
       // Сохраняем в LocalStorage
-      sessionStorage.setItem('user', JSON.stringify(response.data));
-      sessionStorage.setItem('isAuthenticated', 'true');
+      localStorage.setItem('user', JSON.stringify(response.data));
+      localStorage.setItem('isAuthenticated', 'true');
 
       return true;
     } catch (err) {
@@ -35,17 +35,17 @@ export const useUserStore = defineStore('user', () => {
   const logout = () => {
     user.value = null
     isAuthenticated.value = false
-    sessionStorage.removeItem('user')
-    sessionStorage.removeItem('isAuthenticated')
+    localStorage.removeItem('user')
+    localStorage.removeItem('isAuthenticated')
     router.push('/')
   };
 
   // Инициализация из LocalStorage
   const initFromStorage = () => {
-    const storedUser = sessionStorage.getItem('user');
+    const storedUser = localStorage.getItem('user');
     if (storedUser) {
       user.value = JSON.parse(storedUser);
-      isAuthenticated.value = sessionStorage.getItem('isAuthenticated') === 'true';
+      isAuthenticated.value = localStorage.getItem('isAuthenticated') === 'true';
     }
   };
 

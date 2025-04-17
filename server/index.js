@@ -136,6 +136,16 @@ app.post('/api/exercises', async (req, res) => {
         .single();
 
       if (error) throw error;
+
+      // Обновляем exercise_description в day_exercises
+      const { error: updateError } = await supabase
+        .from('day_exercises')
+        .update({ exercise_description: description })
+        .eq('exercise_id', id)
+        .eq('user_id', user_id);
+
+      if (updateError) throw updateError;
+
       res.json({ ...data, message: 'Упражнение обновлено' });
     } else {
       // Создание
