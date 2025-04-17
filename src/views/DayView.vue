@@ -142,27 +142,29 @@
   const timer = ref(null)
   const interval_id = ref(null)
 
-  let audioContext = null
+  const vibrateTimerEnd = () => {
+    // Паттерн вибрации: 3 коротких импульса
+    const pattern = [100, 50, 100, 50, 100];
 
-  // Инициализация аудиоконтекста при первом взаимодействии
-  const initAudio = () => {
-    if (!audioContext) {
-      audioContext = new (window.AudioContext || window.webkitAudioContext)()
+    // Проверяем поддержку вибрации
+    if ("vibrate" in navigator) {
+      // Пытаемся запустить вибрацию
+      const success = navigator.vibrate(pattern);
+
+      if (!success) {
+        // Fallback для iOS (который требует жеста пользователя)
+        const btn = document.createElement('button');
+        btn.style.position = 'fixed';
+        btn.style.opacity = '0';
+        btn.addEventListener('click', () => {
+          navigator.vibrate(pattern);
+          document.body.removeChild(btn);
+        });
+        document.body.appendChild(btn);
+        btn.click();
+      }
     }
-  }
-
-  // Основная функция бипа
-  const beep = (frequency = 400, duration = 0.5, type = 'triangle') => {
-    initAudio()
-
-    const oscillator = audioContext.createOscillator()
-    oscillator.type = type
-    oscillator.frequency.value = frequency
-    oscillator.connect(audioContext.destination)
-
-    oscillator.start()
-    oscillator.stop(audioContext.currentTime + duration)
-  }
+  };
 
   const onTimerStart = () => {
     const saved_timer = timer.value
@@ -177,7 +179,7 @@
       } else if (timer.value === 0) {
         clearInterval(interval_id.value)
         timer.value = saved_timer
-        beep(900, 0.2, 'triangle')
+        vibrateTimerEnd()
       }
     }, 1000)
   }
