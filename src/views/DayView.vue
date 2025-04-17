@@ -143,26 +143,61 @@
   const interval_id = ref(null)
 
   const vibrateTimerEnd = () => {
-    // Паттерн вибрации: 3 коротких импульса
-    const pattern = [100, 50, 100, 50, 100];
-
-    // Проверяем поддержку вибрации
+    // 1. Пытаемся использовать стандартную вибрацию
     if ("vibrate" in navigator) {
-      // Пытаемся запустить вибрацию
-      const success = navigator.vibrate(pattern);
+      // Паттерн для уведомления: вибро-пауза-вибро-пауза-вибро
+      const pattern = [300, 200, 300, 200, 300];
 
-      if (!success) {
-        // Fallback для iOS (который требует жеста пользователя)
-        const btn = document.createElement('button');
-        btn.style.position = 'fixed';
-        btn.style.opacity = '0';
-        btn.addEventListener('click', () => {
-          navigator.vibrate(pattern);
-          document.body.removeChild(btn);
-        });
-        document.body.appendChild(btn);
-        btn.click();
-      }
+      // Создаем невидимую кнопку для iOS
+      const vibrateButton = document.createElement('button');
+      vibrateButton.style.position = 'fixed';
+      vibrateButton.style.opacity = '0';
+      vibrateButton.style.height = '0';
+      vibrateButton.style.width = '0';
+      vibrateButton.textContent = 'Vibrate';
+
+      vibrateButton.addEventListener('click', () => {
+        // Пытаемся вибрировать при реальном клике
+        const success = navigator.vibrate(pattern);
+
+        if (!success) {
+          // 2. Fallback 1: Пытаемся использовать Web Audio
+          try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = ctx.createOscillator();
+            oscillator.type = 'sine';
+            oscillator.frequency.value = 800;
+            oscillator.connect(ctx.destination);
+            oscillator.start();
+            oscillator.stop(ctx.currentTime + 0.3);
+          } catch (e) {
+            // 3. Fallback 2: Показываем визуальное уведомление
+            const notification = document.createElement('div');
+            notification.style.position = 'fixed';
+            notification.style.bottom = '20px';
+            notification.style.left = '50%';
+            notification.style.transform = 'translateX(-50%)';
+            notification.style.padding = '10px 20px';
+            notification.style.background = 'rgba(0,0,0,0.7)';
+            notification.style.color = 'white';
+            notification.style.borderRadius = '5px';
+            notification.textContent = 'Таймер завершён!';
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+              document.body.removeChild(notification);
+            }, 3000);
+          }
+        }
+
+        document.body.removeChild(vibrateButton);
+      });
+
+      document.body.appendChild(vibrateButton);
+      vibrateButton.click();
+    } else {
+      // 4. Final Fallback: Просто выводим в консоль
+      alert('Таймер!!1!1');
     }
   };
 
