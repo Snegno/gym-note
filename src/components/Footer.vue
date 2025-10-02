@@ -1,6 +1,6 @@
 <script setup>
   import { useRoute, useRouter } from 'vue-router'
-  import {computed} from 'vue'
+  import { computed } from 'vue'
   import IconArrow from '@/components/icons/IconArrow.vue'
 
   const route = useRoute()

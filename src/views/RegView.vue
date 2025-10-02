@@ -17,7 +17,6 @@
         password: new_user.value.password,
       });
 
-      console.log({response})
       if (response.data.id) {
         // Перенаправляем на страницу входа через 2 секунды
         setTimeout(() => {
@@ -30,14 +29,13 @@
     }
   }
 
-  console.log('reggg')
 </script>
 
 <template>
   <div class="main flex flex-col justify-between">
     <form class="flex flex-col gap-3 w-50" style="margin-bottom: 35%">
       <div class="flex flex-col">
-        <label for="login">имя</label>
+        <label for="login">Имя</label>
         <input
           v-model="new_user.name"
           id="login"
@@ -46,7 +44,7 @@
         >
       </div>
       <div class="flex flex-col">
-        <label for="password">пароль</label>
+        <label for="password">Пароль</label>
         <input
           v-model="new_user.password"
           id="password"

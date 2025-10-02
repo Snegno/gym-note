@@ -3,11 +3,13 @@
   import IconDone from '@/components/icons/IconDone.vue'
   import IconPlus from '@/components/icons/IconPlus.vue'
   import IconClose from '@/components/icons/IconClose.vue'
+  import IconGrab from '@/components/icons/IconGrab.vue'
   import { onMounted, ref } from 'vue'
   import IconShow from '@/components/icons/IconShow.vue'
   import api from '@/api/client.js'
   import { useUserStore } from '@/stores/userStore.js'
   import { debounce } from '@/utils/debounce.js'
+  import { VueDraggableNext } from 'vue-draggable-next'
 
   const route = useRoute()
 
@@ -49,6 +51,7 @@
         weight: item.weight,
         count: item.count,
         can_show: item.exercise_id === currentCard.value?.id,
+        position: item.position,
       }
     })
   }
@@ -72,7 +75,6 @@
   }
 
   const updateDayExercise = async card => {
-    console.log('updateDayExercise')
     currentCard.value = card
 
     try {
@@ -84,11 +86,13 @@
         weight: +card.weight,
         count: +card.count || null,
         is_update: true,
+        position: +card.position,
       })
 
       getDayExercises()
       getExercisesCards()
     } catch (error) {
+      console.log({error})
       console.error('Ошибка добавления:', error.response?.data);
     }
   }
@@ -142,65 +146,6 @@
   const timer = ref(null)
   const interval_id = ref(null)
 
-  const vibrateTimerEnd = () => {
-    // 1. Пытаемся использовать стандартную вибрацию
-    if ("vibrate" in navigator) {
-      // Паттерн для уведомления: вибро-пауза-вибро-пауза-вибро
-      const pattern = [300, 200, 300, 200, 300];
-
-      // Создаем невидимую кнопку для iOS
-      const vibrateButton = document.createElement('button');
-      vibrateButton.style.position = 'fixed';
-      vibrateButton.style.opacity = '0';
-      vibrateButton.style.height = '0';
-      vibrateButton.style.width = '0';
-      vibrateButton.textContent = 'Vibrate';
-
-      vibrateButton.addEventListener('click', () => {
-        // Пытаемся вибрировать при реальном клике
-        const success = navigator.vibrate(pattern);
-
-        if (!success) {
-          // 2. Fallback 1: Пытаемся использовать Web Audio
-          try {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = ctx.createOscillator();
-            oscillator.type = 'sine';
-            oscillator.frequency.value = 800;
-            oscillator.connect(ctx.destination);
-            oscillator.start();
-            oscillator.stop(ctx.currentTime + 0.3);
-          } catch (e) {
-            // 3. Fallback 2: Показываем визуальное уведомление
-            const notification = document.createElement('div');
-            notification.style.position = 'fixed';
-            notification.style.bottom = '20px';
-            notification.style.left = '50%';
-            notification.style.transform = 'translateX(-50%)';
-            notification.style.padding = '10px 20px';
-            notification.style.background = 'rgba(0,0,0,0.7)';
-            notification.style.color = 'white';
-            notification.style.borderRadius = '5px';
-            notification.textContent = 'Таймер завершён!';
-            document.body.appendChild(notification);
-
-            setTimeout(() => {
-              document.body.removeChild(notification);
-            }, 3000);
-          }
-        }
-
-        document.body.removeChild(vibrateButton);
-      });
-
-      document.body.appendChild(vibrateButton);
-      vibrateButton.click();
-    } else {
-      // 4. Final Fallback: Просто выводим в консоль
-      alert('Таймер!!1!1');
-    }
-  };
-
   const onTimerStart = () => {
     const saved_timer = timer.value
 
@@ -214,9 +159,31 @@
       } else if (timer.value === 0) {
         clearInterval(interval_id.value)
         timer.value = saved_timer
-        vibrateTimerEnd()
+        alert('TIMER!!!')
       }
     }, 1000)
+  }
+
+  const onDragEnd = e => {
+    const oldCard = selectedCards.value.find(card => card.position == e.oldIndex)
+    const newCard = selectedCards.value.find(card => card.position == e.newIndex)
+
+    //FIXME продумать логику назначения Позиций
+
+    selectedCards.value.forEach(card => {
+      if (card.position === e.newIndex) {
+        card.position = e.oldIndex
+      }
+
+      if (card.position === e.oldIndex) {
+        card.position = e.newIndex
+      }
+    })
+    console.log(selectedCards.value)
+
+    updateDayExercise(oldCard)
+    updateDayExercise(newCard)
+    getDayExercises()
   }
 
   onMounted(async() => {
@@ -224,10 +191,7 @@
     await getExercisesCards()
 
     setTimeout(() => isLoaded.value = true, 200)
-    // isLoaded.value = true
   })
-
-
 
 </script>
 
@@ -236,49 +200,74 @@
     v-loading="isLoading & !isLoaded"
     class="w-full h-full flex flex-col items-center gap-2 p-2 overflow-y-auto"
   >
-    <div
+    <VueDraggableNext
+      v-show="selectedCards.length > 0"
+      v-model="selectedCards"
+      item-key="id"
+      group="cards"
+      handle=".card_grab_icon"
+      :touch-start-threshold="30"
+      :force-fallback="true"
+      :animation="200"
+      ghost-class="sortable-ghost"
+      chosen-class="sortable-chosen"
+      drag-class="sortable-drag"
+      class="w-full flex flex-col items-center gap-2 p-2 overflow-y-auto dragArea"
+      @end="onDragEnd"
+    >
+      <div
       v-for="card in selectedCards"
       :key="card.id"
+      :id="card.id"
       class="card flex flex-col relative"
       @click="card.can_show = !card.can_show"
-    >
-      <div class="my-3">
-        {{ card.description }}
-      </div>
-      <div
-        v-show="card.can_show"
-        class="flex justify-between gap-16 py-1"
       >
-        <div>
-          <input
-            class="w-[65%] h-10 border border-gray-300 rounded-lg text-center"
-            type="text"
-            v-model="card.weight"
-            @input="onChangeCard(card)"
-            @click.stop="() => card.weight=''"
-            @focusout="() => {}"
-          >
-          <span class="ms-2">кг</span>
+        <div class="my-3">
+          {{ card.description }}
         </div>
-        <div>
-          <input
-            class="w-[65%] h-10 border border-gray-300 rounded-lg text-center"
-            type="text"
-            v-model="card.count"
-            @input="onChangeCard(card)"
-            @click.stop="() => card.count=''"
-            @focusout="() => {}"
-          >
-          <span class="ms-2">раз</span>
+        <div
+          v-show="card.can_show"
+          class="flex justify-between gap-16 py-1"
+        >
+          <div>
+            <input
+              class="w-[65%] h-10 border border-gray-300 rounded-lg text-center"
+              type="text"
+              v-model="card.weight"
+              @input="onChangeCard(card)"
+              @click.stop="() => card.weight=''"
+              @focusout="() => {}"
+            >
+            <span class="ms-2">кг</span>
+          </div>
+          <div>
+            <input
+              class="w-[65%] h-10 border border-gray-300 rounded-lg text-center"
+              type="text"
+              v-model="card.count"
+              @input="onChangeCard(card)"
+              @click.stop="() => card.count=''"
+              @focusout="() => {}"
+            >
+            <span class="ms-2">раз</span>
+          </div>
         </div>
-      </div>
-      <div class="absolute left-[50%] translate-x-[-50%] bottom-0">
-        <IconShow
-          class="transition-all duration-400 ease-in-out"
-          :class="{ 'rotate-0' : card.can_show , 'rotate-180' : !card.can_show }"
-        />
-      </div>
+        <div class="absolute left-[50%] translate-x-[-50%] bottom-0">
+          <IconShow
+            class="transition-all duration-400 ease-in-out"
+            :class="{ 'rotate-0' : card.can_show , 'rotate-180' : !card.can_show }"
+          />
+        </div>
+
+        <div
+          v-show="!card.can_show"
+          style="color: rgba(0, 0, 0, 0.3); font-size: 24px;"
+          class="card_grab_icon absolute left-0.5 top-[50%] translate-y-[-50%]"
+        >
+          <IconGrab/>
+        </div>
     </div>
+    </VueDraggableNext>
 
     <div v-if="isLoaded" class="absolute top-[0px] h-[25px] right-[-2px] flex gap-0 w-20 mt-5 opacity-50" @click.stop>
       <input
@@ -368,10 +357,11 @@
   }
 
   .card {
-    padding: 4px 12px 8px 12px;
+    padding: 8px 12px 8px 26px;
     background-color: white;
     width: 98%;
     border-radius: 12px;
+    user-select: none;
   }
 
   .card_grab_icon {

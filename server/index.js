@@ -240,6 +240,7 @@ app.post('/api/day_exercises', async (req, res) => {
     exercise_description,
     weight,
     count,
+    position,
     is_update = false
   } = req.body;
 
@@ -257,13 +258,20 @@ app.post('/api/day_exercises', async (req, res) => {
         return res.status(400).json({ error: 'Для обновления exercise_id обязателен' });
       }
 
+      const updateData = {
+        exercise_description: exercise_description || 'Без названия',
+        weight: weight ?? null,
+        count: count ?? null
+      };
+
+      // Добавляем position в обновление, если он был передан
+      if (position !== undefined) {
+        updateData.position = position;
+      }
+
       const { data, error } = await supabase
         .from('day_exercises')
-        .update({
-          exercise_description: exercise_description || 'Без названия',
-          weight: weight ?? null,
-          count: count ?? null
-        })
+        .update(updateData)
         .eq('day_id', day_id)
         .eq('exercise_id', exercise_id)
         .eq('user_id', user_id)
@@ -290,6 +298,21 @@ app.post('/api/day_exercises', async (req, res) => {
         }
       }
 
+      // Получаем максимальную позицию для этого дня
+      const { data: maxPosData, error: posError } = await supabase
+        .from('day_exercises')
+        .select('position')
+        .eq('day_id', day_id)
+        .eq('user_id', user_id)
+        .order('position', { ascending: false })
+        .limit(1);
+
+      if (posError) throw posError;
+
+      const nextPosition = maxPosData && maxPosData[0]
+        ? maxPosData[0].position + 1
+        : 0; // Если это первое упражнение в дне
+
       const { data, error } = await supabase
         .from('day_exercises')
         .insert([{
@@ -298,7 +321,8 @@ app.post('/api/day_exercises', async (req, res) => {
           exercise_id: exercise_id || null,
           exercise_description: exercise_description || 'Без названия',
           weight: weight ?? null,
-          count: count ?? null
+          count: count ?? null,
+          position: nextPosition // Добавляем вычисленную позицию
         }])
         .select();
 
@@ -333,11 +357,13 @@ app.get('/api/day_exercises/:day_id', async (req, res) => {
         exercise_description,
         weight,
         count,
+        position,
         exercises!inner(description)
       `)
       .eq('day_id', day_id)
       .eq('user_id', user_id)
-      .order('id', { ascending: true });
+      .order('position', { ascending: true }) // Сортировка по позиции вместо id
+      .order('id', { ascending: true }); // Дополнительная сортировка для стабильности
 
     if (error) throw error;
 

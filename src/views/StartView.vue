@@ -12,6 +12,7 @@
     },
   ]
   const onChangeRoute = route_name => router.push(route_name)
+
 </script>
 
 <template>

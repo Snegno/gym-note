@@ -37,7 +37,7 @@ export const useUserStore = defineStore('user', () => {
     isAuthenticated.value = false
     localStorage.removeItem('user')
     localStorage.removeItem('isAuthenticated')
-    router.push('/')
+    router.push('/login')
   };
 
   // Инициализация из LocalStorage
